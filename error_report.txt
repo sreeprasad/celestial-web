@@ -10,7 +10,32 @@ Jupiter             0.000           0.000           0.000    1.43e-14  PASS
 Saturn              0.000           0.000           0.000    3.70e-15  PASS
 Uranus              0.000           0.000           0.000    1.97e-15  PASS
 Neptune             0.000           0.000           0.000    1.97e-15  PASS
+Pluto               0.000           0.000           0.000    4.23e-15  PASS
+Phobos              0.000           0.000           0.000    2.36e-10  PASS
+Deimos              0.000           0.000           0.000    8.73e-11  PASS
+Io                  0.000           0.000           0.000    2.91e-11  PASS
+Europa              0.000           0.000           0.000    2.91e-11  PASS
+Ganymede            0.000           0.000           0.000    7.28e-12  PASS
+Callisto            0.000           0.000           0.000    3.64e-12  PASS
+Mimas               0.000           0.000           0.000    6.08e-11  PASS
+Enceladus           0.000           0.000           0.000    2.95e-11  PASS
+Tethys              0.000           0.000           0.000    2.92e-11  PASS
+Dione               0.000           0.000           0.000    1.46e-11  PASS
+Rhea                0.000           0.000           0.000    7.30e-12  PASS
+Titan               0.000           0.000           0.000    3.82e-12  PASS
+Hyperion            0.000           0.000           0.000    2.34e-12  PASS
+Iapetus             0.000           0.000           0.000    4.83e-13  PASS
+Phoebe              0.034           0.030           0.029    2.24e-09  PASS
+Helene              0.000           0.000           0.000    1.46e-11  PASS
+Telesto             0.000           0.000           0.000    1.49e-11  PASS
+Calypso             0.000           0.000           0.000    1.47e-11  PASS
+Miranda             0.000           0.000           0.000    2.94e-11  PASS
+Ariel               0.000           0.000           0.000    1.46e-11  PASS
+Umbriel             0.000           0.000           0.000    1.46e-11  PASS
+Titania             0.000           0.000           0.000    3.66e-12  PASS
+Oberon              0.000           0.000           0.000    3.65e-12  PASS
+Triton              0.000           0.000           0.000    2.91e-11  PASS
 
-10/10 bodies within 1.0 km on every date
+35/35 bodies within 1.0 km on every date
 
 Worst dates per failing body:

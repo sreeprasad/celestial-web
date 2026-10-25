@@ -1,0 +1,6 @@
+Original C++ IapetusTerms: 583 rows
+TypeScript port:
+  IapetusTerms (lib/ephemeris/tass17_iapetus_terms.ts): 583 rows
+  total: 583 rows
+
+Rows match exactly.

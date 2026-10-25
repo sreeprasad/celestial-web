@@ -25,7 +25,32 @@ export type BodyName =
   | 'Jupiter'
   | 'Saturn'
   | 'Uranus'
-  | 'Neptune';
+  | 'Neptune'
+  | 'Pluto'
+  | 'Phobos'
+  | 'Deimos'
+  | 'Io'
+  | 'Europa'
+  | 'Ganymede'
+  | 'Callisto'
+  | 'Mimas'
+  | 'Enceladus'
+  | 'Tethys'
+  | 'Dione'
+  | 'Rhea'
+  | 'Titan'
+  | 'Hyperion'
+  | 'Iapetus'
+  | 'Phoebe'
+  | 'Helene'
+  | 'Telesto'
+  | 'Calypso'
+  | 'Miranda'
+  | 'Ariel'
+  | 'Umbriel'
+  | 'Titania'
+  | 'Oberon'
+  | 'Triton';
 
 export const BODY_ORDER: readonly BodyName[] = [
   'Sun',
@@ -38,6 +63,31 @@ export const BODY_ORDER: readonly BodyName[] = [
   'Saturn',
   'Uranus',
   'Neptune',
+  'Pluto',
+  'Phobos',
+  'Deimos',
+  'Io',
+  'Europa',
+  'Ganymede',
+  'Callisto',
+  'Mimas',
+  'Enceladus',
+  'Tethys',
+  'Dione',
+  'Rhea',
+  'Titan',
+  'Hyperion',
+  'Iapetus',
+  'Phoebe',
+  'Helene',
+  'Telesto',
+  'Calypso',
+  'Miranda',
+  'Ariel',
+  'Umbriel',
+  'Titania',
+  'Oberon',
+  'Triton',
 ] as const;
 
 export type VSOPTermTuple = [number, number, number];
