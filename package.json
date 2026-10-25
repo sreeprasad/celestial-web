@@ -1,0 +1,14 @@
+{
+  "name": "celestia-web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "dump": "tsx scripts/dump_positions.ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "tsx": "4.16.2",
+    "typescript": "5.5.3"
+  }
+}
