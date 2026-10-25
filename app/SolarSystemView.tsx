@@ -21,6 +21,8 @@ import {
   formatDateTimeUTC,
   getDisplayedRadiusKm,
   KM_PER_UNIT,
+  PLANET_MOONS,
+  PRIMARY_BODIES,
 } from './solar-data';
 
 declare global {
@@ -39,7 +41,7 @@ interface TestViewConfig {
   boost?: number;
 }
 
-const PLANET_LIST: BodyName[] = [
+const HELIO_ORBIT_BODIES: BodyName[] = [
   'Mercury',
   'Venus',
   'Earth',
@@ -48,7 +50,12 @@ const PLANET_LIST: BodyName[] = [
   'Saturn',
   'Uranus',
   'Neptune',
+  'Pluto',
 ];
+
+const MOON_ORBIT_BODIES: BodyName[] = BODY_ORDER.filter(
+  (b) => BODY_META[b].parent !== undefined
+);
 
 function createStarfield(): THREE.Points {
   const count = 4000;
@@ -149,7 +156,7 @@ export default function SolarSystemView() {
   const jdRef = useRef<number>(jd);
   const playingRef = useRef<boolean>(playing);
   const speedDaysPerSecRef = useRef<number>(1);
-  const boostRef = useRef< number >(testViewConfig?.boost ?? boost);
+  const boostRef = useRef<number>(testViewConfig?.boost ?? boost);
   const selectedBodyRef = useRef<BodyName>(selectedBody);
 
   // Fly-to interpolation state
@@ -257,7 +264,7 @@ export default function SolarSystemView() {
     const sunLight = new THREE.PointLight(0xffffff, 2.5, 0, 0);
     scene.add(sunLight);
 
-    // Create meshes for all 10 bodies
+    // Create meshes for all 35 bodies
     const meshes: Record<BodyName, THREE.Mesh> = {} as Record<
       BodyName,
       THREE.Mesh
@@ -321,13 +328,14 @@ export default function SolarSystemView() {
       texturePromises.push(texPromise);
     }
 
-    // Create orbit lines for the 8 planets
+    // Create orbit lines for heliocentric planets (and Pluto) + moons around their parent planet
     const orbitGroup = new THREE.Group();
     scene.add(orbitGroup);
     const orbitLines: Partial<Record<BodyName, THREE.LineLoop>> = {};
 
     const updateOrbits = (centerJd: number, sunPosUnits: THREE.Vector3) => {
-      for (const planet of PLANET_LIST) {
+      // Heliocentric planet & Pluto orbits
+      for (const planet of HELIO_ORBIT_BODIES) {
         const period = BODY_META[planet].periodDays;
         const segments = 256;
         const points: THREE.Vector3[] = [];
@@ -359,6 +367,45 @@ export default function SolarSystemView() {
         }
         line.position.copy(sunPosUnits);
       }
+
+      // Moon orbits around their parent planet (sampled over one orbital period)
+      for (const moon of MOON_ORBIT_BODIES) {
+        const meta = BODY_META[moon];
+        const parent = meta.parent;
+        if (!parent) continue;
+        const period = meta.periodDays;
+        const segments = 96;
+        const points: THREE.Vector3[] = [];
+        for (let i = 0; i < segments; i++) {
+          const t = centerJd + (i / segments) * period;
+          const pos = positionKm(moon, t);
+          points.push(
+            new THREE.Vector3(
+              pos.x / KM_PER_UNIT,
+              pos.y / KM_PER_UNIT,
+              pos.z / KM_PER_UNIT
+            )
+          );
+        }
+
+        let line = orbitLines[moon];
+        if (!line) {
+          const geo = new THREE.BufferGeometry().setFromPoints(points);
+          const mat = new THREE.LineBasicMaterial({
+            color: meta.color,
+            transparent: true,
+            opacity: 0.35,
+          });
+          line = new THREE.LineLoop(geo, mat);
+          orbitGroup.add(line);
+          orbitLines[moon] = line;
+        } else {
+          line.geometry.setFromPoints(points);
+        }
+        line.position.copy(meshes[parent].position);
+        const b = boostRef.current;
+        line.scale.set(b, b, b);
+      }
     };
 
     // Update body positions & scales for a given JD and boost
@@ -380,10 +427,18 @@ export default function SolarSystemView() {
       }
 
       sunLight.position.copy(meshes.Sun.position);
-      for (const planet of PLANET_LIST) {
+      for (const planet of HELIO_ORBIT_BODIES) {
         const line = orbitLines[planet];
         if (line) {
           line.position.copy(meshes.Sun.position);
+        }
+      }
+      for (const moon of MOON_ORBIT_BODIES) {
+        const line = orbitLines[moon];
+        const parent = BODY_META[moon].parent;
+        if (line && parent) {
+          line.position.copy(meshes[parent].position);
+          line.scale.set(currentBoost, currentBoost, currentBoost);
         }
       }
     };
@@ -401,7 +456,7 @@ export default function SolarSystemView() {
 
       const targetMesh = meshes[body];
       const rKm = getDisplayedRadiusKm(body, boostRef.current);
-      const distKm = Math.max(rKm * 6, 20000);
+      const distKm = Math.max(rKm * 6, 100);
       const distUnits = distKm / KM_PER_UNIT;
 
       const endOffset = new THREE.Vector3(
@@ -702,7 +757,10 @@ export default function SolarSystemView() {
               border: '1px solid rgba(255, 255, 255, 0.14)',
               borderRadius: 8,
               padding: 14,
-              width: 220,
+              width: 245,
+              maxHeight: 'calc(100vh - 120px)',
+              display: 'flex',
+              flexDirection: 'column',
               zIndex: 10,
             }}
           >
@@ -717,6 +775,7 @@ export default function SolarSystemView() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexShrink: 0,
               }}
             >
               <span>Solar System</span>
@@ -735,58 +794,131 @@ export default function SolarSystemView() {
               </Link>
             </div>
 
+            {/* Grouped Body List (planets & moons grouped under their parent planet) */}
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                overflowY: 'auto',
+                marginBottom: 12,
+                paddingRight: 4,
+                display: 'flex',
+                flexDirection: 'column',
                 gap: 6,
-                marginBottom: 14,
               }}
             >
-              {BODY_ORDER.map((body) => {
-                const active = selectedBody === body;
+              {PRIMARY_BODIES.map((primary) => {
+                const activePrimary = selectedBody === primary;
+                const moons = PLANET_MOONS[primary] ?? [];
                 return (
-                  <button
-                    key={body}
-                    onClick={() => handleSelectBody(body)}
-                    style={{
-                      background: active
-                        ? 'rgba(56, 139, 253, 0.35)'
-                        : 'rgba(255, 255, 255, 0.06)',
-                      border: active
-                        ? '1px solid #58a6ff'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      color: active ? '#ffffff' : '#c9d1d9',
-                      borderRadius: 5,
-                      padding: '6px 8px',
-                      fontSize: 12,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <span
+                  <div key={primary}>
+                    <button
+                      onClick={() => handleSelectBody(primary)}
                       style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: `#${BODY_META[body].color
-                          .toString(16)
-                          .padStart(6, '0')}`,
-                        display: 'inline-block',
-                        flexShrink: 0,
+                        width: '100%',
+                        background: activePrimary
+                          ? 'rgba(56, 139, 253, 0.35)'
+                          : 'rgba(255, 255, 255, 0.07)',
+                        border: activePrimary
+                          ? '1px solid #58a6ff'
+                          : '1px solid rgba(255, 255, 255, 0.12)',
+                        color: activePrimary ? '#ffffff' : '#e6edf3',
+                        borderRadius: 5,
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 7,
                       }}
-                    />
-                    {body}
-                  </button>
+                    >
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: `#${BODY_META[primary].color
+                            .toString(16)
+                            .padStart(6, '0')}`,
+                          display: 'inline-block',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span>{primary}</span>
+                      {moons.length > 0 && (
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            fontSize: 10,
+                            color: '#8b949e',
+                            fontWeight: 400,
+                          }}
+                        >
+                          {moons.length} {moons.length === 1 ? 'moon' : 'moons'}
+                        </span>
+                      )}
+                    </button>
+
+                    {moons.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 4,
+                          marginTop: 4,
+                          paddingLeft: 12,
+                          borderLeft: '1px solid rgba(255, 255, 255, 0.12)',
+                          marginLeft: 6,
+                        }}
+                      >
+                        {moons.map((moon) => {
+                          const activeMoon = selectedBody === moon;
+                          return (
+                            <button
+                              key={moon}
+                              onClick={() => handleSelectBody(moon)}
+                              style={{
+                                background: activeMoon
+                                  ? 'rgba(56, 139, 253, 0.35)'
+                                  : 'rgba(255, 255, 255, 0.04)',
+                                border: activeMoon
+                                  ? '1px solid #58a6ff'
+                                  : '1px solid rgba(255, 255, 255, 0.08)',
+                                color: activeMoon ? '#ffffff' : '#b1bac4',
+                                borderRadius: 4,
+                                padding: '3px 7px',
+                                fontSize: 11,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  backgroundColor: `#${BODY_META[moon].color
+                                    .toString(16)
+                                    .padStart(6, '0')}`,
+                                  display: 'inline-block',
+                                  flexShrink: 0,
+                                }}
+                              />
+                              {moon}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
 
             {/* Size Boost Toggle */}
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 10, flexShrink: 0 }}>
               <div
                 style={{
                   fontSize: 11,
@@ -837,6 +969,7 @@ export default function SolarSystemView() {
                 fontSize: 12,
                 color: '#c9d1d9',
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               <input
@@ -844,7 +977,7 @@ export default function SolarSystemView() {
                 checked={showOrbits}
                 onChange={(e) => setShowOrbits(e.target.checked)}
               />
-              Show Planet Orbits
+              Show Orbits
             </label>
           </div>
 
