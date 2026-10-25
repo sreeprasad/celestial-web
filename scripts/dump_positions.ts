@@ -1,4 +1,6 @@
 import * as fs from 'node:fs';
+import { setVSOP87Data } from '../lib/ephemeris/vsop87';
+setVSOP87Data(JSON.parse(fs.readFileSync('vsop87.json', 'utf8')));
 import { BODY_ORDER, positionKm } from '../lib/ephemeris';
 
 function main(): void {

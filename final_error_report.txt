@@ -1,0 +1,16 @@
+Error report: TypeScript port vs original Celestia C++ (km). Ground truth = C++.
+body               max_km       median_km         mean_km     max_rel  result
+Sun                 0.000           0.000           0.000    1.95e-14  PASS
+Mercury             0.000           0.000           0.000    4.62e-13  PASS
+Venus               0.000           0.000           0.000    1.14e-13  PASS
+Earth               0.000           0.000           0.000    1.14e-13  PASS
+Moon                0.000           0.000           0.000    9.86e-16  PASS
+Mars                0.000           0.000           0.000    5.72e-14  PASS
+Jupiter             0.000           0.000           0.000    1.43e-14  PASS
+Saturn              0.000           0.000           0.000    3.70e-15  PASS
+Uranus              0.000           0.000           0.000    1.97e-15  PASS
+Neptune             0.000           0.000           0.000    1.97e-15  PASS
+
+10/10 bodies within 1.0 km on every date
+
+Worst dates per failing body:

@@ -8,8 +8,6 @@
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { OrbitSampleProc, Vec3, VSOPJsonData, VSOPTermTuple } from './types';
 import { KM_PER_AU, SolarMass, yearToJD } from './astro';
 import { vec3 } from './math';
@@ -30,28 +28,18 @@ function getVSOP87Data(): VSOPJsonData {
   if (cachedVsopData) {
     return cachedVsopData;
   }
-
-  const candidatePaths = [
-    path.resolve(process.cwd(), 'vsop87.json'),
-    path.resolve(process.cwd(), 'data/vsop87.json'),
-    path.resolve(__dirname, '../../vsop87.json'),
-    path.resolve(__dirname, '../vsop87.json'),
-  ];
-
-  for (const p of candidatePaths) {
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, 'utf8');
-      cachedVsopData = JSON.parse(raw) as VSOPJsonData;
-      return cachedVsopData;
-    }
-  }
-
-  throw new Error('vsop87.json not found');
+  throw new Error('VSOP87 data not loaded: call setVSOP87Data() with the parsed vsop87.json first');
 }
 
 function getSeriesList(keys: string[]): VSOPTermTuple[][] {
   const data = getVSOP87Data();
-  return keys.map((key) => data[key] ?? []);
+  return keys.map((key) => {
+    const series = data[key];
+    if (!series) {
+      throw new Error(`vsop87.json is missing table ${key}`);
+    }
+    return series;
+  });
 }
 
 function sumSeries(series: VSOPTermTuple[], t: number): number {

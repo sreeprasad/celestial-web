@@ -1,0 +1,160 @@
+
+===== FILE: package.json =====
+{
+  "name": "celestia-web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "dump": "tsx scripts/dump_positions.ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "tsx": "4.16.2",
+    "typescript": "5.5.3"
+  }
+}
+
+===== FILE: tsconfig.json =====
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["lib/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+===== FILE: lib/ephemeris/index.ts =====
+// index.ts
+// Public ephemeris interface for celestia-web
+
+import { BODY_ORDER, BodyName, Vec3 } from './types';
+import { Orbit } from './orbit';
+import { createMoonOrbit } from './lunar';
+import {
+  createVSOP87EarthOrbit,
+  createVSOP87JupiterOrbit,
+  createVSOP87MarsOrbit,
+  createVSOP87MercuryOrbit,
+  createVSOP87NeptuneOrbit,
+  createVSOP87SaturnOrbit,
+  createVSOP87SunOrbit,
+  createVSOP87UranusOrbit,
+  createVSOP87VenusOrbit,
+  setVSOP87Data,
+} from './vsop87';
+
+export * from './types';
+export * from './math';
+export * from './astro';
+export * from './orbit';
+export * from './vsop87';
+export * from './lunar';
+
+const orbitCache = new Map<BodyName, Orbit>();
+
+const orbitFactories: Record<BodyName, () => Orbit> = {
+  Sun: createVSOP87SunOrbit,
+  Mercury: createVSOP87MercuryOrbit,
+  Venus: createVSOP87VenusOrbit,
+  Earth: createVSOP87EarthOrbit,
+  Moon: createMoonOrbit,
+  Mars: createVSOP87MarsOrbit,
+  Jupiter: createVSOP87JupiterOrbit,
+  Saturn: createVSOP87SaturnOrbit,
+  Uranus: createVSOP87UranusOrbit,
+  Neptune: createVSOP87NeptuneOrbit,
+};
+
+export function getBodyOrbit(body: BodyName): Orbit {
+  let orbit = orbitCache.get(body);
+  if (!orbit) {
+    const factory = orbitFactories[body];
+    if (!factory) {
+      throw new Error(`Unknown body: ${body}`);
+    }
+    orbit = factory();
+    orbitCache.set(body, orbit);
+  }
+  return orbit;
+}
+
+export function positionKm(body: BodyName, julianDate: number): Vec3 {
+  const orbit = getBodyOrbit(body);
+  return orbit.positionAtTime(julianDate);
+}
+
+export { BODY_ORDER, setVSOP87Data };
+
+===== FILE: lib/ephemeris/types.ts =====
+// types.ts
+//
+// Copyright (C) 2001-present, the Celestia Development Team
+// Original version by Chris Laurel <claurel@gmail.com>
+// TypeScript port for celestia-web
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export type BodyName =
+  | 'Sun'
+  | 'Mercury'
+  | 'Venus'
+  | 'Earth'
+  | 'Moon'
+  | 'Mars'
+  | 'Jupiter'
+  | 'Saturn'
+  | 'Uranus'
+  | 'Neptune';
+
+export const BODY_ORDER: readonly BodyName[] = [
+  'Sun',
+  'Mercury',
+  'Venus',
+  'Earth',
+  'Moon',
+  'Mars',
+  'Jupiter',
+  'Saturn',
+  'Uranus',
+  'Neptune',
+] as const;
+
+export type VSOPTermTuple = [number, number, number];
+export type VSOPJsonData = Record<string, VSOPTermTuple[]>;
+
+export interface KeplerElements {
+  semimajorAxis: number;
+  eccentricity: number;
+  inclination: number;
+  longAscendingNode: number;
+  argPericenter: number;
+  meanAnomaly: number;
+  period: number;
+}
+
+export interface OrbitSampleProc {
+  sample(t: number, position: Vec3, velocity: Vec3): void;
+}
